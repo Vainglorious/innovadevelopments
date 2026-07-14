@@ -1,1 +1,6 @@
 .env
+.claude/
+.DS_Store
+
+# Local-only scratch space for pulled data, notes, downloaded files
+notes/
