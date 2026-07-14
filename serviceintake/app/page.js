@@ -163,10 +163,13 @@ export default function Home() {
     <main className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
       {/* Header */}
       <header className="mb-6 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand">
-          Innova Developments
-        </p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/innova-logo.webp"
+          alt="Innova Developments Ltd."
+          className="mx-auto mb-5 h-auto w-full max-w-[280px]"
+        />
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           Service Request
         </h1>
         <p className="mt-2 text-slate-600">
