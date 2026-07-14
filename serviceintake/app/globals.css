@@ -6,6 +6,8 @@
   color-scheme: light;
 }
 
+html,
 body {
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }

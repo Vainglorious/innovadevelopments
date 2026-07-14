@@ -154,7 +154,7 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">Request received</h1>
+          <h1 className="font-heading text-3xl font-bold uppercase tracking-wide text-slate-900">Request received</h1>
           <p className="mt-2 text-slate-600">
             Thanks{form.contactName ? `, ${form.contactName.split(" ")[0]}` : ""}! Our
             team at Innova Developments has your request and will be in touch shortly.
@@ -184,22 +184,63 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8 sm:py-12">
-      {/* Header */}
-      <header className="mb-6 text-center">
+    <div className="lg:grid lg:grid-cols-2">
+      {/* Brand / hero panel */}
+      <aside className="relative flex min-h-[200px] flex-col justify-between overflow-hidden bg-brand-dark p-6 sm:min-h-[240px] lg:sticky lg:top-0 lg:h-screen lg:self-start lg:p-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/innova-logo.webp"
-          alt="Innova Developments Ltd."
-          className="mx-auto mb-5 h-auto w-full max-w-[280px]"
+          src="/hero.webp"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Service Request
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Tell us about your site and the work you need done. We&apos;ll get back to you soon.
-        </p>
-      </header>
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/85 via-brand/50 to-brand-dark/90" />
+
+        {/* Logo */}
+        <div className="relative">
+          <span className="inline-flex rounded-xl bg-white p-3 shadow-lg ring-1 ring-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/innova-logo.webp"
+              alt="Innova Developments Ltd."
+              className="h-7 w-auto sm:h-9"
+            />
+          </span>
+        </div>
+
+        {/* Tagline (desktop only) */}
+        <div className="relative mt-6 hidden text-white lg:block">
+          <h2 className="font-heading text-3xl font-bold uppercase leading-tight tracking-wide">
+            Professional general contracting &amp; construction management
+          </h2>
+          <p className="mt-4 max-w-md text-white/80">
+            Our team delivers top-tier solutions with precision and reliability —
+            tell us what you need and we&apos;ll follow up promptly.
+          </p>
+          <ul className="mt-6 space-y-2 text-sm text-white/90">
+            <li className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
+              Trusted partner in construction &amp; maintenance
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
+              Fast, no-obligation response
+            </li>
+          </ul>
+        </div>
+      </aside>
+
+      {/* Form panel */}
+      <main className="px-4 py-8 sm:py-12">
+        <div className="mx-auto max-w-xl">
+          <header className="mb-6">
+            <h1 className="font-heading text-4xl font-bold uppercase tracking-wide text-slate-900">
+              Service Request
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Tell us about your site and the work you need done. We&apos;ll get back to you soon.
+            </p>
+          </header>
 
       <form
         onSubmit={onSubmit}
@@ -252,7 +293,7 @@ export default function Home() {
                 key={opt}
                 className={`flex cursor-pointer items-center justify-center rounded-lg border px-4 py-3 text-sm font-medium transition ${
                   form.clientType === opt
-                    ? "border-brand bg-brand/5 text-brand ring-1 ring-brand"
+                    ? "border-brand-accent bg-brand-accent/10 text-brand ring-1 ring-brand-accent"
                     : "border-slate-300 text-slate-700 hover:border-slate-400"
                 }`}
               >
@@ -376,10 +417,12 @@ export default function Home() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-slate-500">
-        Innova Developments · We&apos;ll only use your details to respond to this request.
-      </p>
-    </main>
+          <p className="mt-6 text-center text-xs text-slate-500">
+            Innova Developments · We&apos;ll only use your details to respond to this request.
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -400,6 +443,6 @@ function inputCls(error) {
   return `block w-full rounded-lg border px-3.5 py-2.5 text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
     error
       ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-      : "border-slate-300 focus:border-brand focus:ring-brand/30"
+      : "border-slate-300 focus:border-brand-accent focus:ring-brand-accent/40"
   }`;
 }

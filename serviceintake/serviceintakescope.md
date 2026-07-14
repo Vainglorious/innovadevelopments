@@ -263,7 +263,7 @@ field names show up as dynamic content.
         { "title": "Phone", "value": "@{triggerBody()?['phone']}" },
         { "title": "Site Address", "value": "@{triggerBody()?['siteAddress']}" },
         { "title": "Year Built", "value": "@{triggerBody()?['yearBuilt']}" },
-        { "title": "Photos", "value": "@{triggerBody()?['photoCount']} attached (upload coming soon)" }
+        { "title": "Photos", "value": "@{triggerBody()?['photoCount']}" }
       ]
     },
     {
@@ -277,6 +277,11 @@ field names show up as dynamic content.
       "type": "TextBlock",
       "text": "@{triggerBody()?['description']}",
       "wrap": true
+    },
+    {
+      "type": "ImageSet",
+      "imageSize": "large",
+      "images": @{triggerBody()?['photoImages']}
     }
   ],
   "actions": [
@@ -289,17 +294,33 @@ field names show up as dynamic content.
 }
 ```
 
-**Photo buttons — resolved (2026-07-14):** the original card hard-coded
-`photoLinks[0]` and `[1]` as button URLs. When `photoLinks` is an empty array
-(always, until upload is built), indexing `[0]` throws
-`"array index '0' cannot be selected from empty array"` and the flow's Post-card
-action fails. Fix applied: removed the two photo buttons and added a **"Photos: N
-attached"** fact using `photoCount` (a missing/empty scalar returns null and is
-safe; only array indexing errors). When real photo upload is wired, replace with
-a **dynamic** photo card that renders exactly the 0–5 links submitted.
+**Photos — DONE, working in prod (2026-07-14).** History of how we got here:
+1. Original card hard-coded `photoLinks[0]`/`[1]` as button URLs → crashed on an
+   empty array (`"array index '0' cannot be selected from empty array"`).
+2. Tried a Power Automate **"Select"** action mapping `photoLinks` → image
+   objects, referenced via `body('Select_Photos')` → repeated
+   `"invalid reference to 'Select'"` errors (fragile: reference must match the
+   action's internal name and sit before the Post-card step).
+3. **Winning approach:** the app's `/api/submit` route now builds a `photoImages`
+   array (ready-to-use Adaptive Card `Image` elements) from `photoLinks`. The
+   card injects them directly with `"images": @{triggerBody()?['photoImages']}`.
+   A **trigger** reference always resolves → no more errors, and the Select
+   action was deleted from the flow. Empty array renders nothing (safe).
+
+Note: `photoImages` / `photoCount` aren't in the trigger's generated schema, but
+`triggerBody()` expressions resolve from the live payload regardless. The
+`"images": @{...}` value is intentionally **unquoted** so the array injects at
+runtime.
 
 ---
 
-### Immediate next step
-Lock down the **email setup (Section 5)** — everything else can proceed in
-parallel once we know how mail goes out.
+### Status (2026-07-14)
+Core app is **built and live in production** (https://innovadevelopments.vercel.app/):
+form → Vercel API → Power Automate → Teams card, **including photo upload** (via
+Vercel Blob) rendering inline in the card. Delivery is Teams (not email).
+
+Remaining before wide release:
+- Spam protection (honeypot/captcha)
+- Rotate the Power Automate `sig` token
+- Add Jeff + Dayton to the Teams channel
+- Optional: visual polish (Oswald/Arimo fonts + hero image), Google Maps autocomplete
