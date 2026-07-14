@@ -43,6 +43,21 @@ export async function POST(request) {
     return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
+  const photoLinks = Array.isArray(body.photoLinks) ? body.photoLinks : [];
+
+  // Pre-build Adaptive Card Image objects so the Teams card can inject them
+  // directly (`@{triggerBody()?['photoImages']}`) — no Power Automate "Select"
+  // action needed. Empty array when there are no photos (renders nothing).
+  const photoImages = photoLinks
+    .filter((url) => typeof url === "string" && url.startsWith("http"))
+    .map((url) => ({
+      type: "Image",
+      url,
+      altText: "Client photo",
+      size: "Large",
+      selectAction: { type: "Action.OpenUrl", url },
+    }));
+
   // Shape the payload to match the Power Automate trigger schema.
   const payload = {
     contactName: String(body.contactName).trim(),
@@ -52,9 +67,9 @@ export async function POST(request) {
     siteAddress: String(body.siteAddress).trim(),
     yearBuilt: body.yearBuilt ? String(body.yearBuilt).trim() : "Not provided",
     description: String(body.description).trim(),
-    // Photo hosting (Vercel Blob) is a follow-up; send count for now.
     photoCount: Number.isFinite(body.photoCount) ? body.photoCount : 0,
-    photoLinks: Array.isArray(body.photoLinks) ? body.photoLinks : [],
+    photoLinks,
+    photoImages, // ready-to-render Adaptive Card image elements
     submittedAt: body.submittedAt || new Date().toISOString(),
   };
 
