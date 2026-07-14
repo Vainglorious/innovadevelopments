@@ -262,7 +262,8 @@ field names show up as dynamic content.
         { "title": "Email", "value": "@{triggerBody()?['email']}" },
         { "title": "Phone", "value": "@{triggerBody()?['phone']}" },
         { "title": "Site Address", "value": "@{triggerBody()?['siteAddress']}" },
-        { "title": "Year Built", "value": "@{triggerBody()?['yearBuilt']}" }
+        { "title": "Year Built", "value": "@{triggerBody()?['yearBuilt']}" },
+        { "title": "Photos", "value": "@{triggerBody()?['photoCount']} attached (upload coming soon)" }
       ]
     },
     {
@@ -281,16 +282,6 @@ field names show up as dynamic content.
   "actions": [
     {
       "type": "Action.OpenUrl",
-      "title": "📷 Photo 1",
-      "url": "@{triggerBody()?['photoLinks'][0]}"
-    },
-    {
-      "type": "Action.OpenUrl",
-      "title": "📷 Photo 2",
-      "url": "@{triggerBody()?['photoLinks'][1]}"
-    },
-    {
-      "type": "Action.OpenUrl",
       "title": "✉️ Email Client",
       "url": "mailto:@{triggerBody()?['email']}"
     }
@@ -298,9 +289,14 @@ field names show up as dynamic content.
 }
 ```
 
-**Known TODO on the card:** photo buttons are hard-coded to slots 0 and 1. Needs
-a dynamic version so it renders exactly the photos submitted (0–5) without empty
-buttons. Revisit when wiring real uploads.
+**Photo buttons — resolved (2026-07-14):** the original card hard-coded
+`photoLinks[0]` and `[1]` as button URLs. When `photoLinks` is an empty array
+(always, until upload is built), indexing `[0]` throws
+`"array index '0' cannot be selected from empty array"` and the flow's Post-card
+action fails. Fix applied: removed the two photo buttons and added a **"Photos: N
+attached"** fact using `photoCount` (a missing/empty scalar returns null and is
+safe; only array indexing errors). When real photo upload is wired, replace with
+a **dynamic** photo card that renders exactly the 0–5 links submitted.
 
 ---
 
