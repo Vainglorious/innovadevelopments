@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_MB = 10;
@@ -18,12 +19,14 @@ export default function Home() {
   const [photos, setPhotos] = useState([]); // { file, url }
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle"); // idle | submitting | success | error
+  const [phase, setPhase] = useState(""); // "uploading" | "sending"
   const [serverError, setServerError] = useState("");
 
   const years = useMemo(() => {
+    // Most recent 10 years only (e.g. 2026 down to 2017).
     const current = new Date().getFullYear();
     const list = [];
-    for (let y = current; y >= 1900; y--) list.push(y);
+    for (let y = current; y > current - 10; y--) list.push(y);
     return list;
   }, []);
 
@@ -94,13 +97,30 @@ export default function Home() {
 
     setStatus("submitting");
     try {
-      // NOTE: photos are captured client-side but not yet uploaded — photo
-      // hosting (Vercel Blob) is a follow-up. For now we send the count so the
-      // Teams card can note "N photos attached (upload pending)".
+      // 1. Upload photos DIRECTLY to Vercel Blob from the browser (bypasses the
+      //    ~4.5MB serverless body limit). Returns permanent public URLs.
+      let photoLinks = [];
+      if (photos.length > 0) {
+        setPhase("uploading");
+        photoLinks = await Promise.all(
+          photos.map(async (p) => {
+            const blob = await upload(`service-intake/${p.file.name}`, p.file, {
+              access: "public",
+              handleUploadUrl: "/api/blob-upload",
+              contentType: p.file.type || undefined,
+            });
+            return blob.url;
+          })
+        );
+      }
+
+      // 2. Send the request details (now with real photo URLs) to our API,
+      //    which forwards to Power Automate -> Teams.
+      setPhase("sending");
       const payload = {
         ...form,
         photoCount: photos.length,
-        photoLinks: [],
+        photoLinks,
         submittedAt: new Date().toISOString(),
       };
 
@@ -116,8 +136,12 @@ export default function Home() {
       }
       setStatus("success");
     } catch (err) {
-      setServerError(err.message || "Something went wrong. Please try again.");
+      setServerError(
+        err.message || "Something went wrong. Please try again."
+      );
       setStatus("error");
+    } finally {
+      setPhase("");
     }
   }
 
@@ -344,7 +368,11 @@ export default function Home() {
           disabled={status === "submitting"}
           className="flex w-full items-center justify-center rounded-lg bg-brand px-6 py-3.5 text-base font-semibold text-white transition hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {status === "submitting" ? "Submitting…" : "Submit request"}
+          {status === "submitting"
+            ? phase === "uploading"
+              ? "Uploading photos…"
+              : "Submitting…"
+            : "Submit request"}
         </button>
       </form>
 
