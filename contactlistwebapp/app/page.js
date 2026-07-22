@@ -28,6 +28,7 @@ export default function Home() {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [jobsError, setJobsError] = useState("");
   const [filter, setFilter] = useState("");
+  const [city, setCity] = useState(""); // "" = all cities
   const [selectedId, setSelectedId] = useState("");
 
   const [generating, setGenerating] = useState(false);
@@ -53,21 +54,54 @@ export default function Home() {
     };
   }, []);
 
+  // Cities present in the job list, with a count each, most projects first.
+  const cities = useMemo(() => {
+    const counts = new Map();
+    for (const j of jobs) {
+      const c = (j.city || "").trim();
+      if (!c) continue;
+      counts.set(c, (counts.get(c) || 0) + 1);
+    }
+    return [...counts.entries()].sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
+    );
+  }, [jobs]);
+
+  const withoutCity = useMemo(
+    () => jobs.filter((j) => !(j.city || "").trim()).length,
+    [jobs]
+  );
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return jobs;
-    return jobs.filter(
-      (j) =>
-        j.name.toLowerCase().includes(q) ||
-        String(j.number).toLowerCase().includes(q) ||
-        (j.address || "").toLowerCase().includes(q)
-    );
-  }, [jobs, filter]);
+    // Multi-word search: every word must match somewhere, so "leopolds calgary"
+    // narrows instead of returning nothing.
+    const terms = q ? q.split(/\s+/) : [];
+
+    return jobs.filter((j) => {
+      if (city && (j.city || "") !== city) return false;
+      if (!terms.length) return true;
+
+      const haystack = [j.name, j.number, j.address, j.city, j.state]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return terms.every((t) => haystack.includes(t));
+    });
+  }, [jobs, filter, city]);
 
   const selectedJob = useMemo(
     () => jobs.find((j) => j.id === selectedId) || null,
     [jobs, selectedId]
   );
+
+  // If filtering hides the selected project, drop the selection. Otherwise the
+  // choice stays invisibly active and Generate would build the wrong list.
+  useEffect(() => {
+    if (selectedId && !filtered.some((j) => j.id === selectedId)) {
+      setSelectedId("");
+    }
+  }, [filtered, selectedId]);
 
   async function generate() {
     if (!selectedJob) return;
@@ -121,13 +155,29 @@ export default function Home() {
           <p className="mt-2 text-sm text-red-600">{jobsError}</p>
         ) : (
           <>
-            <input
-              type="text"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter by name, number, or address…"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/30"
-            />
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="Search name, number, city, or address…"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/30"
+              />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                aria-label="Filter by city"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/30 sm:w-56"
+              >
+                <option value="">All cities</option>
+                {cities.map(([c, n]) => (
+                  <option key={c} value={c}>
+                    {c} ({n})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -137,12 +187,38 @@ export default function Home() {
               {filtered.map((j) => (
                 <option key={j.id} value={j.id}>
                   {j.name} {j.number ? `(${j.number})` : ""}
+                  {j.city ? ` — ${j.city}` : ""}
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-slate-400">
-              {filtered.length} of {jobs.length} projects
-            </p>
+
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-slate-400">
+              <span>
+                {filtered.length} of {jobs.length} projects
+              </span>
+              {(filter || city) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter("");
+                    setCity("");
+                  }}
+                  className="text-brand-accent underline underline-offset-2 hover:text-brand"
+                >
+                  Clear filters
+                </button>
+              )}
+              {withoutCity > 0 && !city && (
+                <span>{withoutCity} without a city set in JobTread</span>
+              )}
+            </div>
+
+            {filtered.length === 0 && (
+              <p className="mt-2 text-sm text-slate-500">
+                No projects match{city ? ` in ${city}` : ""}
+                {filter ? ` for “${filter}”` : ""}.
+              </p>
+            )}
           </>
         )}
 

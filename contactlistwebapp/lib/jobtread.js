@@ -42,7 +42,9 @@ export async function listJobs() {
               name: {},
               number: {},
               createdAt: {},
-              location: { name: {}, address: {} },
+              // city/state come back structured, so there's no need to parse
+              // them out of the formatted address string.
+              location: { name: {}, address: {}, city: {}, state: {} },
             },
           },
         },
@@ -56,6 +58,8 @@ export async function listJobs() {
         number: n.number || n.name || "",
         name: label,
         address: (n.location && n.location.address) || "",
+        city: (n.location && n.location.city) || "",
+        state: (n.location && n.location.state) || "",
         createdAt: n.createdAt || "",
       });
     }
