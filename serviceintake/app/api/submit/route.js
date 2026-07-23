@@ -123,6 +123,14 @@ export async function POST(request) {
     }
   }
 
+  // The request-detail link (/r/<id>). `recordLink` is the per-record URL, empty
+  // if we have no id (DB down). `detailLink` is what the Teams card opens — kept
+  // always-valid (falls back to the site root) so an empty Action.OpenUrl can't
+  // break the card post.
+  const base = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const recordLink = requestId && base ? `${base}/r/${requestId}` : "";
+  const detailLink = recordLink || base;
+
   // Shape the payload to match the Power Automate trigger schema.
   const payload = {
     contactName: record.contactName,
@@ -135,15 +143,12 @@ export async function POST(request) {
     photoCount: Number.isFinite(body.photoCount) ? body.photoCount : photoLinks.length,
     photoLinks,
     photoImages, // ready-to-render Adaptive Card image elements
+    detailLink, // link to the /r/<id> detail page — for a card "Open Request" button
     submittedAt: body.submittedAt || new Date().toISOString(),
   };
 
-  const detailLink = requestId
-    ? `${(process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "")}/r/${requestId}`
-    : "";
-
   // 2. Notify: Teams + SMS in parallel, both best-effort.
-  const smsBody = formatIntakeSms(record, detailLink);
+  const smsBody = formatIntakeSms(record, recordLink);
   const [teamsOk, smsResults] = await Promise.all([
     postToTeams(webhookUrl, payload),
     isSmsConfigured()

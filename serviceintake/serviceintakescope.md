@@ -287,12 +287,26 @@ field names show up as dynamic content.
   "actions": [
     {
       "type": "Action.OpenUrl",
+      "title": "🔎 Open Request",
+      "url": "@{triggerBody()?['detailLink']}"
+    },
+    {
+      "type": "Action.OpenUrl",
       "title": "✉️ Email Client",
       "url": "mailto:@{triggerBody()?['email']}"
     }
   ]
 }
 ```
+
+**Detail-page link (added 2026-07-23).** `/api/submit` now sends `detailLink` —
+the `/r/<id>` URL of the saved request (the same link the SMS carries). Like
+`photoImages`, it isn't in the trigger's generated schema, but a `triggerBody()`
+expression resolves it from the live payload regardless. The **"Open Request"**
+button above opens the record's detail page. `detailLink` is always a valid URL
+(it falls back to the site root if a record somehow wasn't saved), so the action
+never breaks the card post. To enable it, add that first action to the card in
+the Power Automate flow's **"Post card in a chat or channel"** step.
 
 **Photos — DONE, working in prod (2026-07-14).** History of how we got here:
 1. Original card hard-coded `photoLinks[0]`/`[1]` as button URLs → crashed on an

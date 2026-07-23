@@ -30,22 +30,43 @@ export async function sendSMS(to, body) {
   return getClient().messages.create({ to, from, body });
 }
 
-// Keep the body GSM-7 (no emoji / em-dash / bullet) so it stays cheap, and
-// trim the description so the whole thing is ~2 segments.
-function truncate(s, n) {
-  const t = String(s || "").replace(/\s+/g, " ").trim();
-  // "..." not "…": the ellipsis char isn't GSM-7 and would force UCS-2 (pricier).
-  return t.length > n ? t.slice(0, n - 3).trimEnd() + "..." : t;
+// Reduce arbitrary user text to ASCII so the message stays GSM-7 (160 chars per
+// segment). A single non-GSM-7 character anywhere — a smart quote, an em-dash, an
+// accented name, an emoji — flips the WHOLE message to UCS-2 (70 chars/segment)
+// and multiplies the cost. Customers paste that constantly, so normalize it out.
+// The full, un-mangled text still lives on the linked detail page.
+export function toGsm7(s) {
+  return String(s || "")
+    // de-accent: e-acute -> e, n-tilde -> n, u-umlaut -> u, ...
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // combining marks left by NFKD
+    // typographic punctuation -> ASCII equivalents
+    .replace(/[‐-―−]/g, "-") // hyphen/figure/en/em dash, minus
+    .replace(/[‘’‚‛]/g, "'") // curly single quotes
+    .replace(/[“”„‟]/g, '"') // curly double quotes
+    .replace(/…/g, "...") // ellipsis
+    .replace(/[•·]/g, "-") // bullets
+    .replace(/ /g, " ") // non-breaking space
+    // drop anything still outside printable ASCII + newline (emoji, symbols)
+    .replace(/[^\x0a\x20-\x7e]/g, "")
+    .trim();
+}
+// Normalize, collapse whitespace, and trim to n chars so the whole body stays
+// ~1-2 segments regardless of what was pasted in.
+function clean(s, n) {
+  const t = toGsm7(String(s || "").replace(/\s+/g, " "));
+  if (!n || t.length <= n) return t;
+  return t.slice(0, n - 3).trimEnd() + "...";
 }
 
 /** Build the alert text. `link` is the /r/<id> detail URL (or empty). */
 export function formatIntakeSms(r, link) {
   const lines = [
     "New Innova service request",
-    `${r.contactName} - ${r.clientType} client`,
-    r.phone,
-    r.siteAddress,
-    truncate(r.description, 90),
+    `${clean(r.contactName, 60)} - ${clean(r.clientType, 20)} client`,
+    clean(r.phone, 30),
+    clean(r.siteAddress, 80),
+    clean(r.description, 90),
   ];
   const photos = Array.isArray(r.photoLinks) ? r.photoLinks.length : 0;
   const tail = [];
